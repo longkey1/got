@@ -100,7 +100,13 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	err := viper.ReadInConfig()
-	if err == nil {
+	if err != nil {
+		// If --config flag was explicitly set, fail on error
+		if cfgFile != "" {
+			cobra.CheckErr(fmt.Errorf("failed to read config file: %w", err))
+		}
+		// Otherwise, it's okay if the default config file doesn't exist
+	} else {
 		_, _ = fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 	}
 
