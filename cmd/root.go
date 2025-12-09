@@ -40,7 +40,7 @@ var (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:     "god",
+	Use:     "got",
 	Short:   "The Golang downloader",
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
@@ -84,7 +84,7 @@ func initConfig() {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
 	} else {
-		// Search config in config directory with name ".god" (without extension).
+		// Search config in config directory with name ".got" (without extension).
 		viper.AddConfigPath(defaultConfigPath())
 		viper.SetConfigType("toml")
 		viper.SetConfigName("config")
@@ -125,7 +125,7 @@ func defaultConfigPath() string {
 		}
 	}
 
-	return filepath.Join(config, "god")
+	return filepath.Join(config, "got")
 }
 
 func remoteVersions() []*hv.Version {

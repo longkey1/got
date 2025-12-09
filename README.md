@@ -1,12 +1,12 @@
-# god
+# got
 
-god is The golang downloader.
+got is The golang downloader.
 
 
 ## Usage
 
 ```
-$ god [command]
+$ got [command]
 ```
 
 ## Available Commands
@@ -19,16 +19,16 @@ $ god [command]
 - path        Describe path
 - remove      Remove specific version
 
-Use "god [command] --help" for more information about a command.
+Use "got [command] --help" for more information about a command.
 
 ## Configration
 
-`path/to/god/config.toml`
+`path/to/got/config.toml`
 
 ```
 golang_url = "https://golang.org"
-goroots_dir = "/path/to/god/goroots"
-temp_dir" = "/path/to/god/tmp"
+goroots_dir = "/path/to/got/goroots"
+temp_dir" = "/path/to/got/tmp"
 versions = [
   "1.21",
   "1.20",

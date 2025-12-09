@@ -62,7 +62,7 @@ func install(ver string) {
 		cobra.CheckErr(err)
 	}(res.Body)
 
-	archiveFile := filepath.Join(cfg.TempDir, fmt.Sprintf("god-archive.%s", ext))
+	archiveFile := filepath.Join(cfg.TempDir, fmt.Sprintf("got-archive.%s", ext))
 	archive, err := os.Create(archiveFile)
 	cobra.CheckErr(err)
 	defer func(out *os.File) {
@@ -73,7 +73,7 @@ func install(ver string) {
 	_, err = io.Copy(archive, res.Body)
 	cobra.CheckErr(err)
 
-	extractDir := filepath.Join(cfg.TempDir, fmt.Sprintf("god-extract-%s", ver))
+	extractDir := filepath.Join(cfg.TempDir, fmt.Sprintf("got-extract-%s", ver))
 	err = archiver.Unarchive(archiveFile, extractDir)
 	cobra.CheckErr(err)
 

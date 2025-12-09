@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 
 export GO_VERSION=$(shell grep "^go " go.mod | sed 's/^go //')
-export PRODUCT_NAME := god
+export PRODUCT_NAME := got
 
 .PHONY: init
 init: ## Initialize the project

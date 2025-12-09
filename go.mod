@@ -1,4 +1,4 @@
-module github.com/longkey1/god
+module github.com/longkey1/got
 
 go 1.21
 
