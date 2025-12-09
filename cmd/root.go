@@ -80,6 +80,12 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
+	// SetDefault must be called before ReadInConfig
+	viper.SetDefault("golang_url", DefaultGolangUrl)
+	viper.SetDefault("goroots_dir", filepath.Join(defaultConfigPath(), DefaultGorootsDir))
+	viper.SetDefault("temp_dir", filepath.Join(defaultConfigPath(), DefaultTempDir))
+	viper.SetDefault("versions", []string{})
+
 	if cfgFile != "" {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
@@ -94,15 +100,9 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	err := viper.ReadInConfig()
-	if err != nil {
-		_, err = fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+	if err == nil {
+		_, _ = fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 	}
-
-	// SetDefault
-	viper.SetDefault("golang_url", DefaultGolangUrl)
-	viper.SetDefault("goroots_dir", filepath.Join(defaultConfigPath(), DefaultGorootsDir))
-	viper.SetDefault("temp_dir", filepath.Join(defaultConfigPath(), DefaultTempDir))
-	viper.SetDefault("versions", []string{})
 
 	cobra.CheckErr(viper.Unmarshal(&cfg))
 }
