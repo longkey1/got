@@ -15,7 +15,7 @@ limitations under the License.
 */
 package main
 
-import "github.com/longkey1/godl/cmd"
+import "github.com/longkey1/god/cmd"
 
 var (
 	version = "dev"

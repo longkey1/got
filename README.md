@@ -1,12 +1,12 @@
-# godl
+# god
 
-godl is The golang downloader.
+god is The golang downloader.
 
 
 ## Usage
 
 ```
-$ godl [command]
+$ god [command]
 ```
 
 ## Available Commands
@@ -19,16 +19,16 @@ $ godl [command]
 - path        Describe path
 - remove      Remove specific version
 
-Use "godl [command] --help" for more information about a command.
+Use "god [command] --help" for more information about a command.
 
 ## Configration
 
-`path/to/godl/config.toml`
+`path/to/god/config.toml`
 
 ```
 golang_url = "https://golang.org"
-goroots_dir = "/path/to/godl/goroots"
-temp_dir" = "/path/to/godl/tmp"
+goroots_dir = "/path/to/god/goroots"
+temp_dir" = "/path/to/god/tmp"
 versions = [
   "1.21",
   "1.20",

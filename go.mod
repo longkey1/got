@@ -1,4 +1,4 @@
-module github.com/longkey1/godl
+module github.com/longkey1/god
 
 go 1.21
 
