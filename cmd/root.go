@@ -180,27 +180,33 @@ func SetVersionInfo(version, commit, date string) {
 }
 
 func remoteLatestVersions() []*hv.Version {
-	versions := remoteVersions()
-	latestVersionsMap := make(map[string]*hv.Version)
-	for _, v := range versions {
-		seg := v.Segments()
-		minorVersionKey := fmt.Sprintf("%d_%d", seg[0], seg[1])
-		if _, ok := latestVersionsMap[minorVersionKey]; ok {
-			continue
-		}
-		latestVersionsMap[minorVersionKey] = v
-	}
-	var latestVersions []*hv.Version
-	for _, v := range latestVersionsMap {
-		latestVersions = append(latestVersions, v)
-	}
-
-	sort.Sort(sort.Reverse(hv.Collection(latestVersions)))
-
-	return latestVersions
+	return latestMinorVersions(remoteVersions())
 }
 
-func localLatestVersions() []*hv.Version {
+// latestMinorVersions returns the latest patch version for each minor version.
+// Input must be sorted in descending order.
+func latestMinorVersions(versions []*hv.Version) []*hv.Version {
+	latestMap := make(map[string]*hv.Version)
+	for _, v := range versions {
+		seg := v.Segments()
+		minorKey := fmt.Sprintf("%d.%d", seg[0], seg[1])
+		if _, exists := latestMap[minorKey]; exists {
+			continue
+		}
+		latestMap[minorKey] = v
+	}
+
+	var result []*hv.Version
+	for _, v := range latestMap {
+		result = append(result, v)
+	}
+
+	sort.Sort(sort.Reverse(hv.Collection(result)))
+
+	return result
+}
+
+func localVersions() []*hv.Version {
 	files, err := ioutil.ReadDir(cfg.GorootsDir)
 	cobra.CheckErr(err)
 
@@ -212,15 +218,15 @@ func localLatestVersions() []*hv.Version {
 		versionsRaw = append(versionsRaw, file.Name())
 	}
 
-	latestVersions := make([]*hv.Version, len(versionsRaw))
+	versions := make([]*hv.Version, len(versionsRaw))
 	for i, raw := range versionsRaw {
 		v, _ := hv.NewVersion(raw)
-		latestVersions[i] = v
+		versions[i] = v
 	}
 
-	sort.Sort(sort.Reverse(hv.Collection(latestVersions)))
+	sort.Sort(sort.Reverse(hv.Collection(versions)))
 
-	return latestVersions
+	return versions
 }
 
 func latestVersion(ver string, latestVersions []*hv.Version) string {

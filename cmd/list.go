@@ -11,7 +11,7 @@ var listCmd = &cobra.Command{
 	Aliases: []string{"ls"},
 	Short:   "Installed version list",
 	Run: func(cmd *cobra.Command, args []string) {
-		for _, v := range localLatestVersions() {
+		for _, v := range localVersions() {
 			fmt.Println(v.Original())
 		}
 	},

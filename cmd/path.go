@@ -31,7 +31,7 @@ var pathCmd = &cobra.Command{
 				log.Fatalf("Not found %s matched version\n", target)
 			}
 		} else {
-			latest := latestVersion(target, localLatestVersions())
+			latest := latestVersion(target, localVersions())
 			if latest == InitialVersion {
 				log.Fatalf("Not found %s matched version\n", target)
 			}
