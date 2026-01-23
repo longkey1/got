@@ -39,36 +39,66 @@ make tools  # Install goreleaser
 
 ## Architecture
 
+### Project Structure
+- `main.go` - Entry point, sets version info from ldflags
+- `cmd/` - Cobra command definitions
+  - `cmd/root.go` - Root command and CLI initialization
+  - `cmd/install.go` - Install command
+  - `cmd/list.go` - List installed versions command
+  - `cmd/list-remote.go` - List remote versions command
+  - `cmd/remove.go` - Remove command
+  - `cmd/path.go` - Path display command
+- `internal/` - Internal packages (not importable by external projects)
+  - `internal/config/` - Configuration management
+  - `internal/version/` - Version fetching and management
+  - `internal/installer/` - Installation logic
+
 ### Command Structure (Cobra-based)
-- `cmd/root.go` - Root command and shared configuration logic
-  - Handles config file loading (TOML format in `~/.config/got/config.toml`)
-  - Defines `Config` struct with: `golang_url`, `goroots_dir`, `temp_dir`, `versions`
-  - Implements version fetching from golang.org/dl
-  - Provides `remoteVersions()`, `localVersions()`, `latestVersion()` helper functions
+- `cmd/root.go` - Root command and CLI initialization
+  - Initializes configuration using `internal/config`
+  - Sets up persistent flags and Viper bindings
+  - Provides `SetVersionInfo()` for version injection
 - `cmd/install.go` - Downloads and installs Go versions
   - Supports `--strict` flag to install exact version (default: latest patch)
-  - Downloads from golang.org/dl based on OS and architecture
-  - Extracts to `goroots_dir/VERSION` directory
+  - Uses `internal/version` to resolve versions
+  - Uses `internal/installer` to download and extract
 - `cmd/list.go` - Lists installed versions
+  - Uses `internal/version.LocalVersions()`
 - `cmd/list-remote.go` - Lists downloadable versions from golang.org
+  - Supports `--latest` flag to show only latest patch per minor version
+  - Uses `internal/version.RemoteVersions()` or `RemoteLatestVersions()`
 - `cmd/remove.go` - Removes installed versions
   - Supports `--all-old` flag to remove old patch versions (keeps latest for each minor version in config)
   - Supports `--dry-run` flag to preview what would be removed
+  - Uses `internal/version.LocalVersions()` and `LatestMinorVersions()`
 - `cmd/path.go` - Shows path information
-- `main.go` - Entry point, sets version info from ldflags
+  - Uses `internal/version` to resolve version paths
 
-### Configuration System
+### Internal Packages
+
+#### internal/config
+- `Config` struct with: `golang_url`, `goroots_dir`, `temp_dir`, `versions`
+- `DefaultConfigPath()` - Returns default config directory path
+- `Load(cfgFile string)` - Loads configuration from file or defaults
 - Uses Viper for configuration management
-- Default config location: `~/.config/got/config.toml` (Linux/Windows) or `~/.config/got/config.toml` (macOS with XDG_CONFIG_HOME)
-- Can be overridden with `--config` flag
+- Default config location: `~/.config/got/config.toml`
 - Supports environment variables via `viper.AutomaticEnv()`
-- Default values set before reading config file
 
-### Version Management Logic
+#### internal/version
+- `RemoteVersions(golangUrl)` - Fetches all available versions from golang.org/dl
+- `RemoteLatestVersions(golangUrl)` - Fetches latest patch per minor version from remote
+- `LocalVersions(gorootsDir)` - Lists installed versions
+- `LatestVersion(ver, versions)` - Finds latest patch for given minor version
+- `LatestMinorVersions(versions)` - Filters to latest patch per minor version
 - Uses `hashicorp/go-version` for version parsing and comparison
 - Web scraping golang.org/dl with `goquery` to find available versions
-- `latestMinorVersions()` function filters to latest patch for each minor version
-- `latestVersion()` function finds latest patch for a given minor version string
+
+#### internal/installer
+- `Install(ver, golangUrl, gorootsDir, tempDir)` - Downloads and installs a Go version
+- Downloads from golang.org/dl based on OS and architecture
+- Extracts to `goroots_dir/VERSION` directory
+- Handles both tar.gz (Linux/macOS) and zip (Windows) formats
+- Uses `mholt/archiver/v3` for extraction
 
 ### Key Dependencies
 - `spf13/cobra` - CLI framework

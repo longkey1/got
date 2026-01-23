@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/longkey1/got/internal/version"
 	"github.com/spf13/cobra"
 )
 
@@ -35,11 +36,11 @@ If no version is specified, shows the goroots directory.`,
 				return fmt.Errorf("version %s not found", target)
 			}
 		} else {
-			versions, err := localVersions()
+			versions, err := version.LocalVersions(cfg.GorootsDir)
 			if err != nil {
 				return err
 			}
-			latest, err := latestVersion(target, versions)
+			latest, err := version.LatestVersion(target, versions)
 			if err != nil {
 				return err
 			}

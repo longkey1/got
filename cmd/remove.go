@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	hv "github.com/hashicorp/go-version"
+	"github.com/longkey1/got/internal/version"
 	"github.com/spf13/cobra"
 )
 
@@ -39,11 +40,11 @@ Use --all-old flag to remove old patch versions while keeping the latest for eac
 }
 
 func removeAllOldVersions(dryRun bool) error {
-	installed, err := localVersions()
+	installed, err := version.LocalVersions(cfg.GorootsDir)
 	if err != nil {
 		return err
 	}
-	latest := latestMinorVersions(installed)
+	latest := version.LatestMinorVersions(installed)
 
 	// Build a set of latest versions for quick lookup
 	latestSet := make(map[string]bool)
