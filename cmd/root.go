@@ -2,12 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
-	hv "github.com/hashicorp/go-version"
-	"github.com/spf13/cobra"
-	"io"
-	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -16,6 +10,9 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/PuerkitoBio/goquery"
+	hv "github.com/hashicorp/go-version"
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
@@ -40,11 +37,9 @@ var (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:     "got",
-	Short:   "The Golang downloader",
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
+	Use:   "got",
+	Short: "The Golang downloader",
+	Long:  "got is a Go version manager that allows you to easily install, list, and manage multiple versions of Go.",
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -56,26 +51,22 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", fmt.Sprintf("config file (default is %s)", filepath.Join(defaultConfigPath(), "config.toml")))
 
-	rootCmd.PersistentFlags().String("gourl", DefaultGorootsDir, "golang url")
-	err := viper.BindPFlag("golang_url", rootCmd.PersistentFlags().Lookup("gourl"))
-	cobra.CheckErr(err)
+	rootCmd.PersistentFlags().String("gourl", DefaultGolangUrl, "golang url")
+	if err := viper.BindPFlag("golang_url", rootCmd.PersistentFlags().Lookup("gourl")); err != nil {
+		cobra.CheckErr(err)
+	}
 
 	rootCmd.PersistentFlags().String("goroots", DefaultGorootsDir, "goroots directory")
-	err = viper.BindPFlag("goroots_dir", rootCmd.PersistentFlags().Lookup("goroots"))
-	cobra.CheckErr(err)
+	if err := viper.BindPFlag("goroots_dir", rootCmd.PersistentFlags().Lookup("goroots")); err != nil {
+		cobra.CheckErr(err)
+	}
 
-	rootCmd.PersistentFlags().String("temp", DefaultGorootsDir, "temp directory")
-	err = viper.BindPFlag("temp_dir", rootCmd.PersistentFlags().Lookup("temp"))
-	cobra.CheckErr(err)
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.PersistentFlags().String("temp", DefaultTempDir, "temp directory")
+	if err := viper.BindPFlag("temp_dir", rootCmd.PersistentFlags().Lookup("temp")); err != nil {
+		cobra.CheckErr(err)
+	}
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -110,7 +101,9 @@ func initConfig() {
 		_, _ = fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 	}
 
-	cobra.CheckErr(viper.Unmarshal(&cfg))
+	if err := viper.Unmarshal(&cfg); err != nil {
+		cobra.CheckErr(fmt.Errorf("failed to unmarshal config: %w", err))
+	}
 }
 
 func defaultConfigPath() string {
@@ -134,27 +127,26 @@ func defaultConfigPath() string {
 	return filepath.Join(config, "got")
 }
 
-func remoteVersions() []*hv.Version {
+func remoteVersions() ([]*hv.Version, error) {
 	res, err := http.Get(cfg.GolangUrl + "/dl")
-	cobra.CheckErr(err)
-
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		cobra.CheckErr(err)
-	}(res.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch versions from %s/dl: %w", cfg.GolangUrl, err)
+	}
+	defer res.Body.Close()
 
 	if res.StatusCode != 200 {
-		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
+		return nil, fmt.Errorf("status code error: %d %s", res.StatusCode, res.Status)
 	}
 
 	doc, err := goquery.NewDocumentFromReader(res.Body)
-	cobra.CheckErr(err)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse HTML: %w", err)
+	}
 
 	var versionsRaw []string
 	doc.Find("a.download").Each(func(i int, s *goquery.Selection) {
-		// For each item found, get the title
-		url, _ := s.Attr("href")
-		if strings.HasSuffix(url, "src.tar.gz") == false {
+		url, exists := s.Attr("href")
+		if !exists || !strings.HasSuffix(url, "src.tar.gz") {
 			return
 		}
 		reg := regexp.MustCompile(`/dl/go([0-9.]+)\.src\.tar\.gz$`)
@@ -164,23 +156,30 @@ func remoteVersions() []*hv.Version {
 		}
 	})
 
-	versions := make([]*hv.Version, len(versionsRaw))
-	for i, raw := range versionsRaw {
-		v, _ := hv.NewVersion(raw)
-		versions[i] = v
+	versions := make([]*hv.Version, 0, len(versionsRaw))
+	for _, raw := range versionsRaw {
+		v, err := hv.NewVersion(raw)
+		if err != nil {
+			continue
+		}
+		versions = append(versions, v)
 	}
 
 	sort.Sort(sort.Reverse(hv.Collection(versions)))
 
-	return versions
+	return versions, nil
 }
 
 func SetVersionInfo(version, commit, date string) {
 	rootCmd.Version = fmt.Sprintf("%s (Built on %s from Git SHA %s)", version, date, commit)
 }
 
-func remoteLatestVersions() []*hv.Version {
-	return latestMinorVersions(remoteVersions())
+func remoteLatestVersions() ([]*hv.Version, error) {
+	versions, err := remoteVersions()
+	if err != nil {
+		return nil, err
+	}
+	return latestMinorVersions(versions), nil
 }
 
 // latestMinorVersions returns the latest patch version for each minor version.
@@ -206,35 +205,43 @@ func latestMinorVersions(versions []*hv.Version) []*hv.Version {
 	return result
 }
 
-func localVersions() []*hv.Version {
-	files, err := ioutil.ReadDir(cfg.GorootsDir)
-	cobra.CheckErr(err)
-
-	var versionsRaw []string
-	for _, file := range files {
-		if file.IsDir() == false {
-			continue
+func localVersions() ([]*hv.Version, error) {
+	files, err := os.ReadDir(cfg.GorootsDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return []*hv.Version{}, nil
 		}
-		versionsRaw = append(versionsRaw, file.Name())
+		return nil, fmt.Errorf("failed to read directory %s: %w", cfg.GorootsDir, err)
 	}
 
-	versions := make([]*hv.Version, len(versionsRaw))
-	for i, raw := range versionsRaw {
-		v, _ := hv.NewVersion(raw)
-		versions[i] = v
+	versions := make([]*hv.Version, 0)
+	for _, file := range files {
+		if !file.IsDir() {
+			continue
+		}
+		v, err := hv.NewVersion(file.Name())
+		if err != nil {
+			continue
+		}
+		versions = append(versions, v)
 	}
 
 	sort.Sort(sort.Reverse(hv.Collection(versions)))
 
-	return versions
+	return versions, nil
 }
 
-func latestVersion(ver string, latestVersions []*hv.Version) string {
-	target, _ := hv.NewVersion(ver)
+func latestVersion(ver string, latestVersions []*hv.Version) (string, error) {
+	target, err := hv.NewVersion(ver)
+	if err != nil {
+		return "", fmt.Errorf("invalid version format: %s", ver)
+	}
 	seg := target.Segments()
 
 	latest, err := hv.NewVersion(InitialVersion)
-	cobra.CheckErr(err)
+	if err != nil {
+		return "", err
+	}
 
 	for _, v := range latestVersions {
 		if latest.GreaterThan(v) {
@@ -243,9 +250,12 @@ func latestVersion(ver string, latestVersions []*hv.Version) string {
 		segl := v.Segments()
 		if seg[0] == segl[0] && seg[1] == segl[1] {
 			latest = v
-			continue
 		}
 	}
 
-	return latest.Original()
+	if latest.Original() == InitialVersion {
+		return "", fmt.Errorf("no matching version found for %s", ver)
+	}
+
+	return latest.Original(), nil
 }

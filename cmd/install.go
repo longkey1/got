@@ -2,94 +2,133 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/mholt/archiver/v3"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
 
+	"github.com/mholt/archiver/v3"
 	"github.com/spf13/cobra"
 )
 
 // installCmd represents the install command
 var installCmd = &cobra.Command{
-	Use:   "install",
-	Short: "Install specific version",
-	Run: func(cmd *cobra.Command, args []string) {
+	Use:   "install [version]",
+	Short: "Install a specific Go version",
+	Long: `Install a Go version from golang.org.
+If no version is specified, installs all versions listed in the config file.
+By default, installs the latest patch version for the specified minor version.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
 		strict, err := cmd.Flags().GetBool("strict")
-		cobra.CheckErr(err)
+		if err != nil {
+			return err
+		}
 
 		if len(args) < 1 {
+			// Install all versions from config
 			for _, v := range cfg.Versions {
+				var versionToInstall string
 				if strict {
-					install(v)
+					versionToInstall = v
 				} else {
-					install(latestVersion(v, remoteLatestVersions()))
+					remoteLatest, err := remoteLatestVersions()
+					if err != nil {
+						return err
+					}
+					versionToInstall, err = latestVersion(v, remoteLatest)
+					if err != nil {
+						return err
+					}
+				}
+				if err := install(versionToInstall); err != nil {
+					return err
 				}
 			}
 		} else {
 			v := args[0]
-
+			var versionToInstall string
 			if strict {
-				install(v)
+				versionToInstall = v
 			} else {
-				install(latestVersion(v, remoteLatestVersions()))
+				remoteLatest, err := remoteLatestVersions()
+				if err != nil {
+					return err
+				}
+				versionToInstall, err = latestVersion(v, remoteLatest)
+				if err != nil {
+					return err
+				}
+			}
+			if err := install(versionToInstall); err != nil {
+				return err
 			}
 		}
+		return nil
 	},
 }
 
-func install(ver string) {
-	info, err := os.Stat(filepath.Join(cfg.GorootsDir, ver))
-	if os.IsNotExist(err) == false && info.IsDir() {
-		log.Printf("%s is already exists.", ver)
-		return
+func install(ver string) error {
+	targetDir := filepath.Join(cfg.GorootsDir, ver)
+	if info, err := os.Stat(targetDir); err == nil && info.IsDir() {
+		fmt.Printf("%s is already installed\n", ver)
+		return nil
+	}
+
+	// Ensure directories exist
+	if err := os.MkdirAll(cfg.GorootsDir, 0755); err != nil {
+		return fmt.Errorf("failed to create goroots directory: %w", err)
+	}
+	if err := os.MkdirAll(cfg.TempDir, 0755); err != nil {
+		return fmt.Errorf("failed to create temp directory: %w", err)
 	}
 
 	ext := "tar.gz"
-	if runtime.GOARCH == "windows" {
+	if runtime.GOOS == "windows" {
 		ext = "zip"
 	}
 	url := fmt.Sprintf("%s/dl/go%s.%s-%s.%s", cfg.GolangUrl, ver, runtime.GOOS, runtime.GOARCH, ext)
 
+	fmt.Printf("Downloading Go %s from %s...\n", ver, url)
 	res, err := http.Get(url)
-	cobra.CheckErr(err)
+	if err != nil {
+		return fmt.Errorf("failed to download: %w", err)
+	}
+	defer res.Body.Close()
 
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		cobra.CheckErr(err)
-	}(res.Body)
+	if res.StatusCode != 200 {
+		return fmt.Errorf("download failed with status: %d %s", res.StatusCode, res.Status)
+	}
 
-	archiveFile := filepath.Join(cfg.TempDir, fmt.Sprintf("got-archive.%s", ext))
+	archiveFile := filepath.Join(cfg.TempDir, fmt.Sprintf("got-archive-%s.%s", ver, ext))
 	archive, err := os.Create(archiveFile)
-	cobra.CheckErr(err)
-	defer func(out *os.File) {
-		err := out.Close()
-		cobra.CheckErr(err)
-	}(archive)
+	if err != nil {
+		return fmt.Errorf("failed to create archive file: %w", err)
+	}
+	defer archive.Close()
+	defer os.Remove(archiveFile)
 
-	_, err = io.Copy(archive, res.Body)
-	cobra.CheckErr(err)
+	if _, err = io.Copy(archive, res.Body); err != nil {
+		return fmt.Errorf("failed to save archive: %w", err)
+	}
+	archive.Close()
 
+	fmt.Printf("Extracting...\n")
 	extractDir := filepath.Join(cfg.TempDir, fmt.Sprintf("got-extract-%s", ver))
-	err = archiver.Unarchive(archiveFile, extractDir)
-	cobra.CheckErr(err)
+	if err = archiver.Unarchive(archiveFile, extractDir); err != nil {
+		return fmt.Errorf("failed to extract archive: %w", err)
+	}
+	defer os.RemoveAll(extractDir)
 
-	err = os.Rename(filepath.Join(extractDir, "go"), filepath.Join(cfg.GorootsDir, ver))
-	cobra.CheckErr(err)
+	if err = os.Rename(filepath.Join(extractDir, "go"), targetDir); err != nil {
+		return fmt.Errorf("failed to move extracted files: %w", err)
+	}
 
-	err = os.Remove(archiveFile)
-	cobra.CheckErr(err)
-
-	err = os.Remove(extractDir)
-	cobra.CheckErr(err)
-
-	log.Printf("%s is installed.", ver)
+	fmt.Printf("Go %s installed successfully\n", ver)
+	return nil
 }
 
 func init() {
 	rootCmd.AddCommand(installCmd)
-	installCmd.Flags().Bool("strict", false, "If true, install the given version strictly")
+	installCmd.Flags().Bool("strict", false, "install the exact version specified (default: install latest patch)")
 }

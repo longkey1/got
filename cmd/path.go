@@ -2,47 +2,56 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
-	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/spf13/cobra"
 )
 
 // pathCmd represents the path command
 var pathCmd = &cobra.Command{
-	Use:   "path",
-	Short: "Describe path",
-	Run: func(cmd *cobra.Command, args []string) {
+	Use:   "path [version]",
+	Short: "Show the installation path for a Go version",
+	Long: `Display the installation path for a specific Go version.
+If no version is specified, shows the goroots directory.`,
+	Args: cobra.MaximumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) < 1 {
 			fmt.Println(cfg.GorootsDir)
-			return
+			return nil
 		}
 
 		target := args[0]
 
 		strict, err := cmd.Flags().GetBool("strict")
-		cobra.CheckErr(err)
+		if err != nil {
+			return err
+		}
 
 		var path string
 		if strict {
 			path = filepath.Join(cfg.GorootsDir, target)
-			_, err := os.Stat(path)
-			if err != nil {
-				log.Fatalf("Not found %s matched version\n", target)
+			if _, err := os.Stat(path); err != nil {
+				return fmt.Errorf("version %s not found", target)
 			}
 		} else {
-			latest := latestVersion(target, localVersions())
-			if latest == InitialVersion {
-				log.Fatalf("Not found %s matched version\n", target)
+			versions, err := localVersions()
+			if err != nil {
+				return err
+			}
+			latest, err := latestVersion(target, versions)
+			if err != nil {
+				return err
 			}
 			path = filepath.Join(cfg.GorootsDir, latest)
 		}
 
 		fmt.Println(path)
+		return nil
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(pathCmd)
-	pathCmd.Flags().Bool("strict", false, "If true, return the path of the target version strictly")
+	pathCmd.Flags().Bool("strict", false, "match the exact version specified")
 }

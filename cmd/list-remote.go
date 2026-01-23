@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+
 	hv "github.com/hashicorp/go-version"
 	"github.com/spf13/cobra"
 )
@@ -9,26 +10,32 @@ import (
 var listRemoteCmd = &cobra.Command{
 	Use:     "list-remote",
 	Aliases: []string{"ls-remote"},
-	Short:   "Downloadable version list",
-	Run: func(cmd *cobra.Command, args []string) {
+	Short:   "List downloadable Go versions",
+	Long:    "Display a list of all Go versions available for download from golang.org.",
+	RunE: func(cmd *cobra.Command, args []string) error {
 		latest, err := cmd.Flags().GetBool("latest")
-		cobra.CheckErr(err)
+		if err != nil {
+			return err
+		}
 
 		var versions []*hv.Version
 		if latest {
-			versions = remoteLatestVersions()
+			versions, err = remoteLatestVersions()
 		} else {
-			versions = remoteVersions()
+			versions, err = remoteVersions()
+		}
+		if err != nil {
+			return err
 		}
 
-		// After this, the versions are properly sorted
 		for _, v := range versions {
 			fmt.Println(v.Original())
 		}
+		return nil
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(listRemoteCmd)
-	listRemoteCmd.Flags().Bool("latest", false, "filter latest version only")
+	listRemoteCmd.Flags().Bool("latest", false, "show only the latest patch version for each minor version")
 }

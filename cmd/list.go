@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
@@ -9,11 +10,23 @@ import (
 var listCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
-	Short:   "Installed version list",
-	Run: func(cmd *cobra.Command, args []string) {
-		for _, v := range localVersions() {
+	Short:   "List installed Go versions",
+	Long:    "Display a list of all Go versions installed on the system.",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		versions, err := localVersions()
+		if err != nil {
+			return err
+		}
+
+		if len(versions) == 0 {
+			fmt.Println("No versions installed")
+			return nil
+		}
+
+		for _, v := range versions {
 			fmt.Println(v.Original())
 		}
+		return nil
 	},
 }
 
