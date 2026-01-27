@@ -80,8 +80,6 @@ func Load(cfgFile string) (*Config, error) {
 			return nil, fmt.Errorf("failed to read config file: %w", err)
 		}
 		// Otherwise, it's okay if the default config file doesn't exist
-	} else {
-		_, _ = fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 	}
 
 	var cfg Config
