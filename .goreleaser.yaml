@@ -1,3 +1,5 @@
+version: 2
+
 before:
   hooks:
     - go mod tidy
@@ -8,7 +10,6 @@ builds:
     goos:
       - linux
       - darwin
-      - windows
     goarch:
       - amd64
       - arm64
@@ -19,9 +20,6 @@ builds:
     ignore:
       - goos: darwin
         goarch: 386
-      - goos: windows
-        goarch: arm
-        goarm: "6"
     ldflags:
       - -s -w
       - -X main.version={{.Version}}
@@ -37,9 +35,9 @@ archives:
       {{- else if eq .Arch "386" }}i386
       {{- else if eq .Arch "arm" }}armv{{ .Arm }}
       {{- else }}{{ .Arch }}{{ end }}
-    format_overrides:
-      - goos: windows
-        format: zip
+    files:
+      - none*
+    rlcp: true
 
 changelog:
   sort: asc
