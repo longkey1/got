@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/longkey1/got/internal/version"
+	"github.com/longkey1/got/internal/goversion"
 	"github.com/spf13/cobra"
 )
 
@@ -14,7 +14,7 @@ var listCmd = &cobra.Command{
 	Short:   "List installed Go versions",
 	Long:    "Display a list of all Go versions installed on the system.",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		versions, err := version.LocalVersions(cfg.GorootsDir)
+		versions, err := goversion.LocalVersions(cfg.GorootsDir)
 		if err != nil {
 			return err
 		}

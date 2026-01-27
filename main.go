@@ -1,14 +1,19 @@
 package main
 
-import "github.com/longkey1/got/cmd"
+import (
+	"github.com/longkey1/got/cmd"
+	"github.com/longkey1/got/internal/version"
+)
 
 var (
-	version = "dev"
-	commit  = "none"
-	date    = "unknown"
+	ver    = "dev"
+	commit = "unknown"
+	date   = "unknown"
 )
 
 func main() {
-	cmd.SetVersionInfo(version, commit, date)
+	version.Version = ver
+	version.CommitSHA = commit
+	version.BuildTime = date
 	cmd.Execute()
 }

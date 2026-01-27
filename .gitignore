@@ -1,7 +1,36 @@
-/.cache
-/bin
-/vendor
+# Build outputs
+/bin/
+/dist/
 
-dist/
+# Executables
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
 
-/.envrc
+# Test binary
+*.test
+
+# Go workspace
+go.work
+go.work.sum
+vendor/
+
+# Environment
+.env
+.envrc
+.direnv/
+
+# Cache
+/.cache/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

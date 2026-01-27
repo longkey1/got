@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	hv "github.com/hashicorp/go-version"
-	"github.com/longkey1/got/internal/version"
+	"github.com/longkey1/got/internal/goversion"
 	"github.com/spf13/cobra"
 )
 
@@ -21,9 +21,9 @@ var listRemoteCmd = &cobra.Command{
 
 		var versions []*hv.Version
 		if latest {
-			versions, err = version.RemoteLatestVersions(cfg.GolangUrl)
+			versions, err = goversion.RemoteLatestVersions(cfg.GolangUrl)
 		} else {
-			versions, err = version.RemoteVersions(cfg.GolangUrl)
+			versions, err = goversion.RemoteVersions(cfg.GolangUrl)
 		}
 		if err != nil {
 			return err

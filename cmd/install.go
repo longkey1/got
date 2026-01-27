@@ -1,8 +1,8 @@
 package cmd
 
 import (
+	"github.com/longkey1/got/internal/goversion"
 	"github.com/longkey1/got/internal/installer"
-	"github.com/longkey1/got/internal/version"
 	"github.com/spf13/cobra"
 )
 
@@ -26,11 +26,11 @@ By default, installs the latest patch version for the specified minor version.`,
 				if strict {
 					versionToInstall = v
 				} else {
-					remoteLatest, err := version.RemoteLatestVersions(cfg.GolangUrl)
+					remoteLatest, err := goversion.RemoteLatestVersions(cfg.GolangUrl)
 					if err != nil {
 						return err
 					}
-					versionToInstall, err = version.LatestVersion(v, remoteLatest)
+					versionToInstall, err = goversion.LatestVersion(v, remoteLatest)
 					if err != nil {
 						return err
 					}
@@ -45,11 +45,11 @@ By default, installs the latest patch version for the specified minor version.`,
 			if strict {
 				versionToInstall = v
 			} else {
-				remoteLatest, err := version.RemoteLatestVersions(cfg.GolangUrl)
+				remoteLatest, err := goversion.RemoteLatestVersions(cfg.GolangUrl)
 				if err != nil {
 					return err
 				}
-				versionToInstall, err = version.LatestVersion(v, remoteLatest)
+				versionToInstall, err = goversion.LatestVersion(v, remoteLatest)
 				if err != nil {
 					return err
 				}

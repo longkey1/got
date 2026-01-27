@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/longkey1/got/internal/config"
+	"github.com/longkey1/got/internal/version"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -29,6 +30,8 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
+
+	rootCmd.Version = fmt.Sprintf("%s (Built on %s from Git SHA %s)", version.Version, version.BuildTime, version.CommitSHA)
 
 	defaultPath, err := config.DefaultConfigPath()
 	if err != nil {
@@ -58,8 +61,4 @@ func initConfig() {
 	var err error
 	cfg, err = config.Load(cfgFile)
 	cobra.CheckErr(err)
-}
-
-func SetVersionInfo(version, commit, date string) {
-	rootCmd.Version = fmt.Sprintf("%s (Built on %s from Git SHA %s)", version, date, commit)
 }
