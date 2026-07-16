@@ -38,7 +38,7 @@ func Install(ver, golangUrl, gorootsDir, tempDir string) error {
 	if err != nil {
 		return fmt.Errorf("failed to download: %w", err)
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	if res.StatusCode != 200 {
 		return fmt.Errorf("download failed with status: %d %s", res.StatusCode, res.Status)
@@ -49,20 +49,20 @@ func Install(ver, golangUrl, gorootsDir, tempDir string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create archive file: %w", err)
 	}
-	defer archive.Close()
-	defer os.Remove(archiveFile)
+	defer func() { _ = archive.Close() }()
+	defer func() { _ = os.Remove(archiveFile) }()
 
 	if _, err = io.Copy(archive, res.Body); err != nil {
 		return fmt.Errorf("failed to save archive: %w", err)
 	}
-	archive.Close()
+	_ = archive.Close()
 
 	fmt.Printf("Extracting...\n")
 	extractDir := filepath.Join(tempDir, fmt.Sprintf("got-extract-%s", ver))
 	if err = archiver.Unarchive(archiveFile, extractDir); err != nil {
 		return fmt.Errorf("failed to extract archive: %w", err)
 	}
-	defer os.RemoveAll(extractDir)
+	defer func() { _ = os.RemoveAll(extractDir) }()
 
 	if err = os.Rename(filepath.Join(extractDir, "go"), targetDir); err != nil {
 		return fmt.Errorf("failed to move extracted files: %w", err)

@@ -17,9 +17,11 @@ var (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "got",
-	Short: "The Golang downloader",
-	Long:  "got is a Go version manager that allows you to easily install, list, and manage multiple versions of Go.",
+	Use:           "got",
+	Short:         "The Golang downloader",
+	Long:          "got is a Go version manager that allows you to easily install, list, and manage multiple versions of Go.",
+	SilenceErrors: true,
+	SilenceUsage:  true,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

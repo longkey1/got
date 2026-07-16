@@ -235,7 +235,7 @@ func dlServer(t *testing.T, status int, body string) *httptest.Server {
 			return
 		}
 		w.WriteHeader(status)
-		fmt.Fprint(w, body)
+		_, _ = fmt.Fprint(w, body)
 	}))
 	t.Cleanup(srv.Close)
 	return srv
